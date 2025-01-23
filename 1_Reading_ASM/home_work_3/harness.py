@@ -1,8 +1,8 @@
 from pathlib import Path
 from new_decoder import Decoder
 
-bin_path_as_str = Path("listing_0041_add_sub_cmp_jnz")  # Replace with the path to your file
-# bin_path_as_str = Path("listing_0040_challenge_movs")  # Replace with the path to your file
+bin_path_as_str = Path("listing_0041_add_sub_cmp_jnz") 
+# bin_path_as_str = Path("listing_0040_challenge_movs")
 
 try:
     with Path(bin_path_as_str).open('rb') as f:
