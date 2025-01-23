@@ -6,7 +6,17 @@ import sim86
 class VirtualMachine:
     def __init__(self):
         self.registers = [0 for x in range(12)] 
-        verbose: bool = True
+        self.verbose: bool = True
+        self.zero_flag = False
+        self.signed_flag = False
+
+    def get_flags(self):
+        flags = []
+        if self.zero_flag:
+            flags.append('Z')
+        if self.signed_flag:
+            flags.append('S')
+        return (', ').join(flags)
 
     def print_registers(self):
         print(' ---- Final Registers ---- ')
@@ -14,6 +24,12 @@ class VirtualMachine:
             if i == 8:
                 break
             print(f"{sim86.registers_dict[i+1]}: {hex(register)} ({register})")
+        print(self.get_flags())
+
+    def flag_check(self, value):
+        print(value)
+        self.signed_flag = value < 0
+        self.zero_flag = value == 0
 
     def exec_instruction(
             self, 
@@ -21,7 +37,6 @@ class VirtualMachine:
             formatted_bytes: str
             ) -> None:
 
-        print(str(decoded_inst))
         if decoded_inst.op.name == 'mov':
             self.mov(decoded_inst)
 
@@ -31,13 +46,63 @@ class VirtualMachine:
         if decoded_inst.op.name == 'cmp':
             self.cmp(decoded_inst)
 
+        if decoded_inst.op.name == 'add':
+            self.add(decoded_inst)
+
+        print(f"{decoded_inst} flags: {self.get_flags()}")
+
+    def add(self, decoded_inst: sim86.Instruction):
+        destination  = decoded_inst.operands[0]
+        source  = decoded_inst.operands[1]
+        dest_index = destination.index - 1
+
+        if isinstance(source, sim86.RegisterAccess):
+            source_value = self.registers[source.index -1]
+
+        elif isinstance(source, sim86.EffectiveAddressExpression):
+            source_value = self.registers[source.explicit_segment + source.displacement]
+
+        elif isinstance(source, sim86.Immediate):
+            source_value = source.value
+
+        self.registers[dest_index] += source_value
+        self.flag_check(self.registers[dest_index])
+
     def sub(self, decoded_inst: sim86.Instruction):
         destination  = decoded_inst.operands[0]
         source  = decoded_inst.operands[1]
+        dest_index = destination.index - 1
+
+        if isinstance(source, sim86.RegisterAccess):
+            source_value = self.registers[source.index -1]
+
+        elif isinstance(source, sim86.EffectiveAddressExpression):
+            source_value = self.registers[source.explicit_segment + source.displacement]
+
+        elif isinstance(source, sim86.Immediate):
+            source_value = source.value
+
+        self.registers[dest_index] -= source_value
+        breakpoint()
+        self.flag_check(self.registers[dest_index])
 
     def cmp(self, decoded_inst: sim86.Instruction):
         destination  = decoded_inst.operands[0]
         source  = decoded_inst.operands[1]
+        dest_index = destination.index - 1
+
+        if isinstance(source, sim86.RegisterAccess):
+            source_value = self.registers[source.index -1]
+
+        elif isinstance(source, sim86.EffectiveAddressExpression):
+            source_value = self.registers[source.explicit_segment + source.displacement]
+
+        elif isinstance(source, sim86.Immediate):
+            source_value = source.value
+        result = self.registers[dest_index] - source_value
+        # breakpoint()
+        self.flag_check(result)
+
 
     def mov(self, decoded_inst: sim86.Instruction):
         destination  = decoded_inst.operands[0]
@@ -64,7 +129,7 @@ class VirtualMachine:
 
 if __name__ == "__main__":
     # bin_path_as_str = Path("listing_0045_challenge_register_movs") 
-    bin_path_as_str = Path("listing_0044_register_movs") 
+    bin_path_as_str = Path("listing_0046_add_sub_cmp") 
     # bin_path_as_str = Path("listing_0043_immediate_movs") 
 
     # bin_path_as_str = Path("listing_0040_challenge_movs")
