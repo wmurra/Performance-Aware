@@ -9,3 +9,6 @@ also I am quite satisfied with the highlighting on the raw bytes
 
 one last thing. I am not sure if my solution properly accounts for DIRECT ADDRESS
 The test code provided by casey doesnt test for this case, maybe he will mention that in the next video
+
+ok I completed the challenge homework, in doing so I figured out how to do
+a few more of the instructions and how to do the 
