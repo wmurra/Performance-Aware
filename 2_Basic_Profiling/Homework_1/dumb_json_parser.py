@@ -1,8 +1,8 @@
+from __future__ import annotations
 from pathlib import Path
 from enum import Enum, auto
 from dataclasses import dataclass
 
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Any
 from dataclasses import dataclass
@@ -53,7 +53,7 @@ class JsonNumber(Expr):
 class KeyValuePair(Expr):
     # its made of a STRING COLON STRING | NUMBER
     key: JsonString
-    value: JsonNumber | JsonString
+    value: Expr
 
     def accept(self, visitor: ExprVisitor) -> None:
         return visitor.visit_key_value_pair(self) 
@@ -131,11 +131,10 @@ class jsonScanner:
         while True:
             self.index +=1
             char = self._current_char()
-
+            if self._at_end():
+                break
             if not (char.isdigit() or char == '.'):
                 self.index -=1
-                break
-            if self._at_end():
                 break
         self._add_token(TokenType.NUMBER)
     
@@ -146,10 +145,10 @@ class jsonScanner:
             return
         match char: 
             case ' ': ...
-            case '[': self._add_token(TokenType.LEFT_BRACE)
-            case ']': self._add_token(TokenType.RIGHT_BRACE)
-            case '{': self._add_token(TokenType.LEFT_BRACKET)
-            case '}': self._add_token(TokenType.RIGHT_BRACKET)
+            case '[': self._add_token(TokenType.LEFT_BRACKET)
+            case ']': self._add_token(TokenType.RIGHT_BRACKET)
+            case '{': self._add_token(TokenType.LEFT_BRACE)
+            case '}': self._add_token(TokenType.RIGHT_BRACE)
             case ':': self._add_token(TokenType.COLON)
             case ',': self._add_token(TokenType.COMMA)
             case '"': self._add_string()
@@ -164,7 +163,7 @@ class jsonScanner:
             
 
     def _at_end(self) -> bool:
-        if self.index >= len(self.source):
+        if self.index > len(self.source):
             return True
         return False
 
@@ -209,41 +208,66 @@ class jsonParser():
         return self.tokens[self.current - 1]
 
 
-
     def _primary(self)  -> Expr:
         if self._match(TokenType.NUMBER):
             return JsonNumber(self._previous().lexeme)
         if self._match(TokenType.STRING):
             return JsonString(self._previous().lexeme)
-        
-        if self._match(TokenType.LEFT_BRACE):
-            ...
+
 
         if self._match(TokenType.LEFT_BRACKET):
-            while True:
-                print('ok')
-                if self._advance().token_type != TokenType.RIGHT_BRACKET:
+            expr = JsonList(values=[])
+            while not self._match(TokenType.RIGHT_BRACKET):
+                expr.values.append(self._primary())
+                if self._match(TokenType.RIGHT_BRACKET):
                     break
-            return plinko_expr.Grouping(expr)
-        
-        raise SyntaxError("Expect Expression.")
+                if not self._match(TokenType.COMMA): # so the way this is written trailing comma is legal. but who cares
+                    raise SyntaxError("Perhaps you forgot a comma.")
+            return expr
 
-    def _parse_container(self):
-        ...
+
+        if self._match(TokenType.LEFT_BRACE):
+            expr = JsonDict(items=[])
+            while not self._match(TokenType.RIGHT_BRACE):
+                expr.items.append(self._parse_key_val_pair())
+                if self._match(TokenType.RIGHT_BRACE):
+                    break
+                if not self._match(TokenType.COMMA): # so the way this is written trailing comma is legal. but who cares
+                    raise SyntaxError("Perhaps you forgot a comma.")
+            return expr
+
+        raise SyntaxError(f"Expect Expression. {print(self._peek().token_type)}")
 
     def _parse_key_val_pair(self):
-        
-        ...
+        if self._match(TokenType.STRING):
+            key = JsonString(self._previous().lexeme)
+        if not self._match(TokenType.COLON):
+            raise SyntaxError("Perhaps you forgot a colon?")
+        value = self._primary()
+        key_val_pair = KeyValuePair(
+            key=key,
+            value=value
+        )
+        return key_val_pair
 
-    def parse()
 
-source_path = Path('haversine.json')
+    def parse(self):
+        try:
+            return self._primary()
+        except SyntaxError as e:
+            print(e)
+
+source_path = Path('test.json')
+# source_path = Path('haversine.json')
 with source_path.open() as f:
     source_code = f.read()
     scanner = jsonScanner(source_code)
     scanner.scan_tokens()
-    print([str(token) for token in scanner.tokens])
-
+    parser = jsonParser(scanner.tokens)
+    # [print(str(token)) for token in scanner.tokens]
+    expr = parser.parse()
+    
+    print(expr)
     # scanner = Scanner(source_code)
     # tokens = scanner.scan_tokens()
     # # print([token.lexeme for token in tokens])
