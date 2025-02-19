@@ -16,7 +16,7 @@ def generate_haversine_data_json():
     cluster_min_x0 = random.uniform(-180, -10)
     cluster_max_x0 = random.uniform(10, 180)
 
-    for i in range(10000):
+    for i in range(1):
         x0 = random.uniform(cluster_min_x0, cluster_max_x0)
         y0 = random.uniform(cluster_min_y0, cluster_max_y0)
         x1 = random.uniform(cluster_min_x, cluster_max_x)
